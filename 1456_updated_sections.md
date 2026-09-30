@@ -497,6 +497,7 @@ def _corrected_coefficients(two_theta_meas_deg, intensity_meas, two_theta_inst_d
     sigma_A[L == 0.0] = 0.0                      # A(0) = 1 identically
     return A, sigma_A
 
+
 def subproblem_1(two_theta_meas_deg, intensity_meas, two_theta_inst_deg,
                  intensity_inst, two_theta0_deg, wavelength_ka1_nm,
                  wavelength_ka2_nm, ka2_ratio, m_values, d1_nm, L_values):
@@ -1273,6 +1274,7 @@ def _corrected_coefficients(two_theta_meas_deg, intensity_meas, two_theta_inst_d
     sigma_A = np.sqrt(dA_h ** 2 @ n_h + dA_g ** 2 @ n_g)
     sigma_A[L == 0.0] = 0.0                      # A(0) = 1 identically
     return A, sigma_A
+
 
 def subproblem_1(two_theta_meas_deg, intensity_meas, two_theta_inst_deg,
                  intensity_inst, two_theta0_deg, wavelength_ka1_nm,
