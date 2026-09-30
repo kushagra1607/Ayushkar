@@ -39,7 +39,7 @@ In the specimen scan, the Kα2 component is an exact replica of the Kα1 compone
 
 where the sum runs over every count of both scans. Up to the normalisation every step is linear in the counts of a scan, and the first and last counts also enter every background-corrected value through the straight background line. The normalised coefficients of a scan and the deconvolved coefficient are ratios of such linear functions of the counts; the numerator and the denominator of a normalised coefficient depend on the same counts. Report \\(\sigma_A(L)\\) for every requested column length; it is 0 at \\(L = 0\\).
 
-\\(A\\) is compared at a relative tolerance of \\(10^{-6}\\) (absolute \\(10^{-9}\\)) and \\(\sigma_A\\) at a relative tolerance of \\(10^{-5}\\) (absolute \\(10^{-12}\\)). Each call must return within about one second on a standard CPU.
+Return the tuple \\((A, \sigma_A)\\) of two arrays; both are checked. \\(A\\) is compared at a relative tolerance of \\(10^{-6}\\) (absolute \\(10^{-9}\\)) and \\(\sigma_A\\) at a relative tolerance of \\(10^{-5}\\) (absolute \\(10^{-12}\\)). Each call must return within about one second on a standard CPU.
 
 Write a function with the following signature:
 
