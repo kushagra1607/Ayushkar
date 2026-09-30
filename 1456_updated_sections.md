@@ -1,83 +1,72 @@
-# ctp_scicode_material_science_1456 — updated sections (v5)
+# ctp_scicode_material_science_1456 — updated sections (v7)
 
-Replace the cells below in the 1456 notebook. Every other cell (Metadata, Title,
-Main Problem prompt/background/tests) stays exactly as it is.
-`ctp_scicode_material_science_1456_5.ipynb` in this folder already has all of them applied.
-
-| Unit | Cell | Change |
-|---|---|---|
-| Subproblem 1 | Prompt | "Uncertainties" paragraph now gives the propagation formula explicitly; tolerances + time limit stated |
-| Subproblem 1 | Background | "Counting statistics" paragraph: why the end-point counts dominate at small L |
-| Subproblem 1 | Testing Template | `sigma_A` tolerance 1e-6 -> 1e-5 (expected values unchanged) |
-| Subproblem 1 | Solution | **unchanged** |
-| Subproblem 2 | Prompt | new step 6 (integral breadth + FWHM of predicted line profile), ValueError conditions, tolerances |
-| Subproblem 2 | Background | new "Line-profile widths" paragraph + Langford/Louër/Scardi reference |
-| Subproblem 2 | Testing Template | 8 outputs checked; new test 7 (invalid inputs) and test 8 (broad distribution) |
-| Subproblem 2 | Solution | new |
-| Main Problem | Solution | contains the new subproblem_2; `main_problem` only takes `[:5]` of it (outputs identical, all 6 tests pass) |
+Subproblem 1 now contains the Warren–Averbach separation with propagated counting uncertainties; Main = Subproblem 1 -> Subproblem 2 (Main prompt/background/tests unchanged).
 
 ---
 
 ## Subproblem 1 — Prompt
 
 ````markdown
-Compute two quantities for one X-ray reflection recorded in laboratory \\(2\theta\\) step scans: the Fourier cosine coefficients \\(A(L)\\) of its physical line profile, corrected for instrumental broadening by the Stokes method and for the Kα2 component of the radiation, and the standard uncertainties \\(\sigma_A(L)\\) of these coefficients due to counting statistics. The function returns both, as the tuple \\((A, \sigma_A)\\).
+Determine the size Fourier coefficients \\(A_S(L)\\) and the root-mean-square strains \\(\varepsilon_{\mathrm{rms}}(L)\\) of a nanocrystalline powder from laboratory \\(2\theta\\) step scans of several orders of one reflection family, together with their standard uncertainties due to counting statistics. The function returns four arrays, \\((A_S, \varepsilon_{\mathrm{rms}}, \sigma_{A_S}, \sigma_{\varepsilon})\\), each with one value per requested column length.
 
-Two step scans of the same reflection are supplied. The specimen scan, with profile \\(h\\), was recorded with Kα1/Kα2 radiation. The instrumental profile \\(g\\) belongs to a strain-free, coarse-grained standard at the same reflection position and contains the Kα1 component only. Let \\(f\\) denote the physical line profile of the specimen for Kα1 radiation. Each scan is a list of counts at increasing \\(2\theta\\) positions in degrees, and the counts are an intensity per unit \\(2\theta\\). The two scans may cover different angular ranges with different, not necessarily uniform, step sizes, and the counts include a background and, in general, counting noise.
+For each order \\(m_j\\) (\\(j = 0, \dots, n-1\\), \\(n \ge 2\\)), two step scans of the same reflection are supplied. The specimen scan, with profile \\(h\\), was recorded with Kα1/Kα2 radiation. The instrumental profile \\(g\\) belongs to a strain-free, coarse-grained standard at the same reflection position and contains the Kα1 component only. Let \\(f\\) denote the physical line profile of the specimen for Kα1 radiation. Each scan is a list of counts at increasing \\(2\theta\\) positions in degrees, and the counts are an intensity per unit \\(2\theta\\). The scans may cover different angular ranges with different, not necessarily uniform, step sizes, and the counts include a background and counting noise. A reference angle \\(2\theta_{0,j}\\) (the Kα1 peak position) common to the two scans of order \\(m_j\\) is given. Also supplied are the Kα1 and Kα2 wavelengths \\(\lambda_1\\) and \\(\lambda_2\\), the intensity ratio \\(R = I(\mathrm{K}\alpha_2)/I(\mathrm{K}\alpha_1)\\) with \\(0 \le R \lt 1\\), the first-order interplanar spacing \\(d_1\\) and a grid of column lengths \\(0 = L_0 \lt L_1 \lt \dots\\) in nm.
 
-Treat each of the two scans independently. First subtract the straight line in \\(2\theta\\) that passes through the first and the last recorded points of the scan. Then express every recorded point in the reciprocal-space coordinate \\(s = \dfrac{2}{\lambda_1}\left(\sin\theta - \sin\theta_0\right)\\) in nm\\(^{-1}\\), where \\(\theta\\) is half the scattering angle, \\(\lambda_1\\) is the Kα1 wavelength and \\(2\theta_0\\) is the reference angle (the Kα1 peak position of the reflection), which is the same for both scans. The Fourier analysis is carried out on the background-corrected profile expressed as an intensity per unit \\(s\\), \\(I_s(s)\\), which is taken to vary linearly in \\(s\\) between neighbouring recorded points and to vanish outside the scan. For a column length \\(L\\) in nm, the normalised cosine and sine coefficients of a scan are
+Carry out the analysis as follows.
+
+1. **Corrected Fourier coefficients.** Treat every scan independently. First subtract the straight line in \\(2\theta\\) that passes through the first and the last recorded points of the scan. Then express every recorded point in the reciprocal-space coordinate \\(s = \dfrac{2}{\lambda_1}\left(\sin\theta - \sin\theta_0\right)\\) in nm\\(^{-1}\\), where \\(\theta\\) is half the scattering angle and \\(2\theta_0 = 2\theta_{0,j}\\) is the reference angle of the order. The Fourier analysis is carried out on the background-corrected profile expressed as an intensity per unit \\(s\\), \\(I_s(s)\\), which is taken to vary linearly in \\(s\\) between neighbouring recorded points and to vanish outside the scan. For a column length \\(L\\) in nm, the normalised cosine and sine coefficients of a scan are
 
 \\[C(L) = \frac{\int I_s(s)\cos(2\pi L s)\mathrm{d}s}{\int I_s(s)\mathrm{d}s},\qquad S(L) = \frac{\int I_s(s)\sin(2\pi L s)\mathrm{d}s}{\int I_s(s)\mathrm{d}s}\\]
 
-where every integral is evaluated exactly for this piecewise-linear \\(I_s(s)\\).
+where every integral is evaluated exactly for this piecewise-linear \\(I_s(s)\\). In the specimen scan, the Kα2 component is an exact replica of the Kα1 component, scaled by \\(R\\) and displaced in \\(s\\) so that its peak lies at the Kα2 Bragg position of the same reflection, that is, at the angle given by Bragg's law for the Kα2 wavelength \\(\lambda_2\\) and the interplanar spacing whose Kα1 peak lies at \\(2\theta_0\\). The specimen profile is therefore the convolution of \\(f\\), of \\(g\\) and of this two-line spectrum. From the computed coefficients of the specimen and instrumental scans of order \\(m_j\\), use the convolution theorem to obtain the normalised cosine coefficient \\(A(L_i, m_j)\\) of \\(f\\); at every \\(L_i\\) the transforms of the instrumental profiles are non-zero.
 
-In the specimen scan, the Kα2 component is an exact replica of the Kα1 component, scaled by the intensity ratio \\(R = I(\mathrm{K}\alpha_2)/I(\mathrm{K}\alpha_1)\\), with \\(0 \le R \lt 1\\), and displaced in \\(s\\) so that its peak lies at the Kα2 Bragg position of the same reflection, that is, at the angle given by Bragg's law for the Kα2 wavelength \\(\lambda_2\\) and the interplanar spacing whose Kα1 peak lies at \\(2\theta_0\\). The specimen profile is therefore the convolution of \\(f\\), of \\(g\\) and of this two-line spectrum. From the computed coefficients of the specimen and instrumental scans, use the convolution theorem to obtain the normalised cosine coefficient \\(A(L)\\) of \\(f\\) at each requested column length; it equals 1 at \\(L = 0\\). The requested column lengths are such that the transform of the instrumental profile does not vanish.
+2. **Warren–Averbach separation.** Write \\(A(L,m) = A_S(L)A_D(L,m)\\), with an order-independent size coefficient \\(A_S\\) and the distortion coefficient \\(A_D(L,m) = \langle\cos(2\pi m Z_L/d_1)\rangle\\) for relative displacements \\(Z_L\\) of cells a distance \\(L\\) apart that are Gaussian-distributed with zero mean and mean square \\(L^2\langle\varepsilon^2(L)\rangle\\). At each \\(L_i \gt 0\\), fit a straight line to \\(\ln A(L_i,m_j)\\) against \\(m_j^2\\) over the orders with \\(A(L_i,m_j) \gt 0\\), by weighted least squares with weights equal to the inverse variances of \\(\ln A\\) obtained by first-order error propagation from an equal absolute standard uncertainty of every \\(A\\). \\(A_S(L_i)\\) is the extrapolation of the line to \\(m^2 = 0\\), and \\(\varepsilon_{\mathrm{rms}}(L_i) = \sqrt{\langle\varepsilon^2(L_i)\rangle}\\) follows from its slope. If fewer than two orders have positive coefficients, set \\(A_S(L_i) = 0\\) and \\(\varepsilon_{\mathrm{rms}}(L_i) = 0\\); if the fitted \\(\langle\varepsilon^2(L_i)\rangle\\) is not positive, set \\(\varepsilon_{\mathrm{rms}}(L_i) = 0\\) and keep the fitted \\(A_S(L_i)\\). At \\(L_0 = 0\\), \\(A_S = 1\\) and \\(\varepsilon_{\mathrm{rms}} = 0\\).
 
-**Uncertainties.** Treat each recorded count of both scans as an independent Poisson variable whose variance equals the recorded count, regard all other inputs as exact, and propagate these variances to first order (linearisation about the recorded counts) through the complete calculation. Report \\(\sigma_A(L)\\) for every requested column length; it is 0 at \\(L = 0\\).
+3. **Uncertainties.** Treat each recorded count of every scan as an independent Poisson variable whose variance equals the recorded count, regard all other inputs as exact, and propagate these variances to first order (linearisation about the recorded counts) through the complete calculation to the standard uncertainties \\(\sigma_{A_S}(L_i)\\) and \\(\sigma_{\varepsilon}(L_i)\\). An uncertainty is 0 wherever the corresponding quantity is set to 0 by a rule of step 2, and at \\(L_0 = 0\\).
 
-Return the tuple \\((A, \sigma_A)\\) of two arrays; both are checked. \\(A\\) is compared at a relative tolerance of \\(10^{-6}\\) (absolute \\(10^{-9}\\)) and \\(\sigma_A\\) at a relative tolerance of \\(10^{-5}\\) (absolute \\(10^{-12}\\)). Each call must return within about one second on a standard CPU.
+\\(A_S\\) and \\(\varepsilon_{\mathrm{rms}}\\) are compared at a relative tolerance of \\(10^{-6}\\) (absolute \\(10^{-10}\\)), and \\(\sigma_{A_S}\\) and \\(\sigma_{\varepsilon}\\) at a relative tolerance of \\(10^{-3}\\) (absolute \\(10^{-12}\\)). Each call must return within a few seconds on a standard CPU.
 
 Write a function with the following signature:
 
 ```python
 def subproblem_1(two_theta_meas_deg, intensity_meas, two_theta_inst_deg,
                  intensity_inst, two_theta0_deg, wavelength_ka1_nm,
-                 wavelength_ka2_nm, ka2_ratio, L_values):
+                 wavelength_ka2_nm, ka2_ratio, m_values, d1_nm, L_values):
     """
-    Instrument- and doublet-corrected Fourier cosine coefficients of one line.
+    Size coefficients and rms strains from several orders of one reflection,
+    with their counting-statistics uncertainties.
 
     Inputs:
-        two_theta_meas_deg: 1-D array of 2theta positions in degrees
-            (increasing) of the specimen step scan, recorded with
-            K-alpha1 + K-alpha2 radiation.
-        intensity_meas: 1-D array of specimen counts (intensity per unit
-            2theta, including a linear background), same length as
+        two_theta_meas_deg: sequence of n 1-D arrays; element j holds the
+            2theta positions in degrees (increasing) of the specimen scan of
+            order m_values[j] (K-alpha1 + K-alpha2 radiation).
+        intensity_meas: sequence of n 1-D arrays of specimen counts (per unit
+            2theta, including background and noise), matching
             two_theta_meas_deg.
-        two_theta_inst_deg: 1-D array of 2theta positions in degrees
-            (increasing) of the instrumental-profile scan, which contains
-            K-alpha1 only; its range and step may differ from those of the
-            specimen scan.
-        intensity_inst: 1-D array of instrumental counts, same length as
-            two_theta_inst_deg.
-        two_theta0_deg: float, reference angle 2theta_0 in degrees (K-alpha1
-            peak position) that defines s = 0 for both scans.
+        two_theta_inst_deg: sequence of n 1-D arrays of 2theta positions in
+            degrees (increasing) of the K-alpha1-only instrumental scans.
+        intensity_inst: sequence of n 1-D arrays of instrumental counts,
+            matching two_theta_inst_deg.
+        two_theta0_deg: sequence of n floats; element j is the reference angle
+            2theta_0 in degrees (K-alpha1 peak position) shared by the two
+            scans of order m_values[j].
         wavelength_ka1_nm: float, K-alpha1 wavelength in nm.
         wavelength_ka2_nm: float, K-alpha2 wavelength in nm.
         ka2_ratio: float, intensity ratio R = I(K-alpha2)/I(K-alpha1),
             0 <= R < 1.
-        L_values: 1-D array of column lengths L in nm (L >= 0) at which the
-            coefficients are required; L = 0 need not be included. At every
-            requested L the transform of the instrumental profile is non-zero.
+        m_values: sequence of n distinct positive integer orders (n >= 2).
+        d1_nm: float, interplanar spacing of the first-order reflection in nm.
+        L_values: 1-D array of column lengths in nm, increasing, with
+            L_values[0] = 0; at every L the transforms of the instrumental
+            profiles are non-zero.
 
     Output:
-        Tuple (A, sigma_A) of 1-D numpy arrays, one value per entry of
-        L_values and in the same order:
-            A: normalised Fourier cosine coefficients of the K-alpha1 physical
-                line profile (A = 1 at L = 0).
-            sigma_A: standard uncertainty of A from counting statistics
-                (Poisson variance of every recorded count equal to the count,
-                all counts independent), propagated to first order through
-                the whole calculation (sigma_A = 0 at L = 0).
+        Tuple (A_size, eps_rms, sigma_A_size, sigma_eps_rms) of 1-D numpy
+        arrays, one value per entry of L_values:
+            A_size: size Fourier coefficients A_S(L).
+            eps_rms: root-mean-square strains (dimensionless).
+            sigma_A_size: standard uncertainty of A_S from counting statistics.
+            sigma_eps_rms: standard uncertainty of eps_rms from counting
+                statistics.
     """
 ```
 ````
@@ -99,9 +88,13 @@ def subproblem_1(two_theta_meas_deg, intensity_meas, two_theta_inst_deg,
 
 **Counting statistics.** Every recorded count is a Poisson variable, so its variance equals its expectation, which is estimated by the count itself. All steps up to the normalisation are linear in the counts; the straight background depends on the counts at the two end points, so these two counts influence every background-corrected value. The normalisation and the deconvolution are ratios, and their uncertainty follows from a first-order expansion about the recorded counts. The resulting uncertainty of a coefficient grows, relative to the coefficient, with the column length, because the transforms of both scans decay while the noise does not; this is why deconvolved coefficients at long column lengths scatter, and it is the natural basis for weighting the fits that follow.
 
+**Size–strain separation.** The Fourier coefficient of the physical profile factorises into a size term, which is the same for every order, and a distortion term, the average phase factor produced by the relative displacement \\(Z_L = L\varepsilon_L\\) of two cells a distance \\(L\\) apart. For a Gaussian distribution of displacements the logarithm of the distortion term is proportional to \\(m^2\\), so \\(\ln A\\) is linear in \\(m^2\\) at fixed \\(L\\): the intercept at \\(m^2 = 0\\) gives the size coefficient and the slope gives the mean-square strain. The phase of order \\(m\\) can be written either as \\(2\pi m Z_L/d_1\\) or as \\(2\pi Z_L/d_m\\) with \\(d_m = d_1/m\\), the spacing of the order-\\(m\\) reflection; the two forms are identical. In the linear relation of \\(\ln A\\) against \\(m^2\\) the order dependence is carried by \\(m^2\\), so the reference length in that relation is \\(d_1\\) for every member of the series, also when the first order itself cannot be measured. An absolute uncertainty in \\(A\\) turns into an uncertainty of \\(\ln A\\) that grows without limit as \\(A\\) approaches zero, so the fit weights each point by the inverse variance of its logarithm, and non-positive coefficients, whose logarithm does not exist, are omitted. The mean-square strain is averaged over columns of length \\(L\\) and normally decreases with \\(L\\), because longer columns average over strain fields of opposite sign; zeros at the smallest and largest \\(L\\) mark column lengths at which the data carry no usable strain information.
+
 References:
 
 Stokes, A. R. (1948). A numerical Fourier-analysis method for the correction of widths and shapes of lines on X-ray powder photographs. Proceedings of the Physical Society, 61(4), 382–391.
+
+Warren, B. E., & Averbach, B. L. (1952). The separation of cold-work distortion and particle size broadening in X-ray patterns. Journal of Applied Physics, 23(4), 497.
 
 Gangulee, A. (1970). Separation of the α1–α2 doublet in X-ray diffraction profiles. Journal of Applied Crystallography, 3(4), 272–277.
 
@@ -173,10 +166,21 @@ def _reflection(m, d1, lam1, lam2, size, strain, meas=(4.0, 4.5, 0.02),
     return tt_h, I_h, tt_g, I_g, round(tt1, 3)
 
 
+def _dataset(d1, lam1, lam2, ratio, orders, size, strain, meas, inst, seed):
+    """Specimen and instrumental scans for all orders; order j uses seed + j."""
+    tt_h, I_h, tt_g, I_g, tt0 = [], [], [], [], []
+    for j, m in enumerate(orders):
+        r = _reflection(m, d1, lam1, lam2, size, strain, meas=meas, inst=inst,
+                        seed=None if seed is None else seed + j, ka2=ratio)
+        tt_h.append(r[0]); I_h.append(r[1]); tt_g.append(r[2]); I_g.append(r[3]); tt0.append(r[4])
+    return tt_h, I_h, tt_g, I_g, tt0
+
+
 def _check(out, expected):
-    assert len(out) == 2, f"expected (A, sigma_A), got {len(out)} outputs"
-    for name, got, exp, rtol, atol in (("A", out[0], expected[0], 1e-6, 1e-9),
-                                       ("sigma_A", out[1], expected[1], 1e-5, 1e-12)):
+    assert len(out) == 4, f"expected (A_size, eps_rms, sigma_A_size, sigma_eps_rms), got {len(out)} outputs"
+    names = ("A_size", "eps_rms", "sigma_A_size", "sigma_eps_rms")
+    tols = ((1e-6, 1e-10), (1e-6, 1e-10), (1e-3, 1e-12), (1e-3, 1e-12))
+    for name, got, exp, (rtol, atol) in zip(names, out, expected, tols):
         got = np.asarray(got, dtype=float).ravel()
         assert got.shape == (len(exp),), f"{name}: expected {len(exp)} values, got shape {got.shape}"
         assert np.all(np.isfinite(got)), f"{name} must be finite"
@@ -185,110 +189,413 @@ def _check(out, expected):
 
 
 def test_case_1():
-    # Ni (111), Cu K-alpha doublet in the specimen scan, K-alpha1-only instrumental
-    # scan, noise-free: the K-alpha2 replica must be removed in Fourier space.
-    tt_h, I_h, tt_g, I_g, tt0 = _reflection(1, D_NI_111, CU_KA1, CU_KA2,
-                                            (1 / 28, 0.028), (0.0012, 0.010))
-    out = subproblem_1(tt_h, I_h, tt_g, I_g, tt0, CU_KA1, CU_KA2, 0.5,
-                     np.array([0.0, 2.0, 5.0, 10.0, 20.0, 30.0]))
+    # Nanocrystalline Ni, (111)/(222) with Cu K-alpha, noise-free scans: two orders
+    # determine the line exactly
+    data = _dataset(D_NI_111, CU_KA1, CU_KA2, 0.5, [1, 2], (1 / 28, 0.028), (0.0012, 0.010),
+                    (4.0, 4.5, 0.02), (1.5, 2.0, 0.01), None)
+    L = 1.5 * np.arange(17)
+    out = subproblem_1(*data, CU_KA1, CU_KA2, 0.5, [1, 2], D_NI_111, L)
     _check(out, (
         [
-          1.0, 0.877878001, 0.6635645135,
-          0.3722167839, 0.07708808237, 0.009132122198],
+          1.0, 0.9157452666, 0.8080837827, 0.7057533944, 0.6104944539,
+          0.5212758798, 0.4404370477, 0.3681012996, 0.3042040019, 0.2486344568,
+          0.2008873749, 0.1605913728, 0.1268903584, 0.09921722569, 0.0766569918,
+          0.05860738621, 0.04433299568],
         [
-          0.0, 0.01693609705, 0.01301458984,
-          0.007532881085, 0.002828899356, 0.004098975548]))
+          0.0, 0.0, 0.001089479717, 0.00110548994, 0.001100336169,
+          0.001061110927, 0.001038039702, 0.001016879714, 0.0009991916982, 0.0009843092601,
+          0.0009698723113, 0.0009598341402, 0.0009481384487, 0.0009410966816, 0.0009325147068,
+          0.0009250660872, 0.0009213235244],
+        [
+          0.0, 0.02393619218, 0.02149802711, 0.0205660461, 0.01732333677,
+          0.0137716916, 0.01248187269, 0.0105078131, 0.008914699432, 0.007529652624,
+          0.006482545165, 0.006038875554, 0.005909643155, 0.005843786086, 0.00639675499,
+          0.006498265318, 0.006632057788],
+        [
+          0.0, 0.0, 0.0009857679651, 0.0004634003932, 0.0002762465132,
+          0.0001609056505, 0.0001280178346, 8.866456076e-05, 8.297549793e-05, 6.377221709e-05,
+          7.064302946e-05, 7.1195343e-05, 9.305542072e-05, 0.0001164692063, 0.0001476634557,
+          0.0001745258582, 0.0002006288148]))
 
 
 def test_case_2():
-    # Ni (222) at 2theta ~ 98 deg: large doublet separation, strongly varying
-    # cos(theta) across the scan and coarse 0.02 deg steps at long column lengths.
-    tt_h, I_h, tt_g, I_g, tt0 = _reflection(2, D_NI_111, CU_KA1, CU_KA2,
-                                            (1 / 28, 0.028), (0.0012, 0.010))
-    out = subproblem_1(tt_h, I_h, tt_g, I_g, tt0, CU_KA1, CU_KA2, 0.5,
-                     np.array([0.0, 2.0, 5.0, 10.0, 20.0, 30.0]))
+    # Nanocrystalline Pd, (111)/(222)/(333) with Mo K-alpha (ratio 0.52) and counting
+    # noise: an over-determined weighted separation
+    data = _dataset(D_PD_111, MO_KA1, MO_KA2, 0.52, [1, 2, 3], (1 / 36, 0.020), (0.0008, 0.008),
+                    (2.0, 2.5, 0.01), (1.0, 1.5, 0.005), 13)
+    L = 2.0 * np.arange(16)
+    out = subproblem_1(*data, MO_KA1, MO_KA2, 0.52, [1, 2, 3], D_PD_111, L)
     _check(out, (
         [
-          1.0, 0.8815458969, 0.6353926579,
-          0.3202308858, 0.04659888183, 0.003191824949],
+          1.0, 0.8852545367, 0.7852833491, 0.6860556608, 0.5961453748,
+          0.5089341512, 0.4277471497, 0.362179943, 0.3012466976, 0.2485371414,
+          0.2020506285, 0.1577831283, 0.124910193, 0.1020507444, 0.07575207986,
+          0.05460557186],
         [
-          0.0, 0.01735122801, 0.01467292296,
-          0.006255798294, 0.005987315393, 0.003228269329]))
+          0.0, 0.0, 0.0005939443432, 0.0008094742026, 0.0008720739498,
+          0.0008634739312, 0.0008412134937, 0.0008560981029, 0.0008527175522, 0.0008512559747,
+          0.000802147949, 0.0008046622474, 0.0008113398168, 0.0008448815432, 0.0007306802761,
+          0.0006404365794],
+        [
+          0.0, 0.02458645597, 0.02041107526, 0.01778156793, 0.01654577736,
+          0.01395808681, 0.01158126526, 0.0103117552, 0.01034907845, 0.01033532817,
+          0.009124510418, 0.007414378866, 0.006349543336, 0.005722501776, 0.004767428,
+          0.003798217321],
+        [
+          0.0, 0.0, 0.0006004629589, 0.0001978713591, 0.0001041729343,
+          6.550483053e-05, 4.832037148e-05, 3.724329034e-05, 3.560911581e-05, 4.355312262e-05,
+          3.986735136e-05, 3.261126029e-05, 3.312822892e-05, 4.654467806e-05, 9.355576936e-05,
+          8.674584172e-05]))
 
 
 def test_case_3():
-    # Pd (111) with Mo radiation (ratio 0.52) at low angle, counting noise, and
-    # L = 0 absent: the normalisation must use the separately integrated intensity.
-    tt_h, I_h, tt_g, I_g, tt0 = _reflection(1, D_PD_111, MO_KA1, MO_KA2,
-                                            (1 / 36, 0.020), (0.0008, 0.008),
-                                            meas=(2.0, 2.5, 0.01), inst=(1.0, 1.5, 0.005),
-                                            seed=7, ka2=0.52)
-    out = subproblem_1(tt_h, I_h, tt_g, I_g, tt0, MO_KA1, MO_KA2, 0.52,
-                     np.array([1.0, 4.0, 8.0, 15.0, 25.0]))
+    # Pd with non-consecutive orders 1, 2, 4: noisy high-order coefficients become
+    # non-positive at large L and are left out of the fit
+    data = _dataset(D_PD_111, MO_KA1, MO_KA2, 0.52, [1, 2, 4], (1 / 44, 0.030), (0.0010, 0.006),
+                    (2.0, 2.5, 0.01), (1.0, 1.5, 0.005), 23)
+    L = 2.0 * np.arange(21)
+    out = subproblem_1(*data, MO_KA1, MO_KA2, 0.52, [1, 2, 4], D_PD_111, L)
     _check(out, (
         [
-          0.9771346886, 0.7966796369, 0.5910063255,
-          0.3064391095, 0.09611265462],
+          1.0, 0.9201198701, 0.8130069601, 0.7020322667, 0.5908395896,
+          0.4908069623, 0.3943399613, 0.3159159301, 0.2418233048, 0.1830774473,
+          0.129903535, 0.09683455502, 0.07234513376, 0.04832175024, 0.03149430226,
+          0.02321311189, 0.01376765009, 0.01098372458, 0.005982160705, 0.0,
+          0.003176015269],
         [
-          0.02085951899, 0.02123098412, 0.01659468997,
-          0.009160324138, 0.004264384888]))
+          0.0, 0.001418773817, 0.001230784692, 0.001039365593, 0.0009497775121,
+          0.0008922219527, 0.0008362906576, 0.0008199032063, 0.0007975781733, 0.0007407006007,
+          0.000692397027, 0.0006748635091, 0.0007859387415, 0.000734359557, 0.0005996467701,
+          0.0008651832557, 0.0004572017738, 0.0005948886709, 0.0006213934025, 0.0,
+          0.000653461039],
+        [
+          0.0, 0.02219704008, 0.01875143185, 0.01607896811, 0.01468466409,
+          0.01212642503, 0.00965403155, 0.008343788533, 0.007798323031, 0.00760150075,
+          0.006630315771, 0.006097247103, 0.007546690381, 0.005233554341, 0.003989124592,
+          0.006615445957, 0.004660298149, 0.005964311732, 0.004242244892, 0.0,
+          0.005229538742],
+        [
+          0.0, 0.0005748794472, 0.0001768805003, 8.357110922e-05, 5.396806174e-05,
+          3.86142556e-05, 3.00349103e-05, 3.352787114e-05, 2.621515866e-05, 2.683295642e-05,
+          3.174203719e-05, 5.795465782e-05, 0.0001354458564, 0.0001180885488, 0.0001142324858,
+          0.0003496886617, 0.0004337995631, 0.0005486358735, 0.0005581309989, 0.0,
+          0.001193148116]))
 
 
 def test_case_4():
-    # Monochromated specimen scan (ratio 0): no doublet to remove, but the
-    # conversion to s, the exact transform and the deconvolution are still required.
-    tt_h, I_h, tt_g, I_g, tt0 = _reflection(1, D_NI_111, CU_KA1, CU_KA2,
-                                            (1 / 28, 0.028), (0.0012, 0.010), ka2=0.0)
-    out = subproblem_1(tt_h, I_h, tt_g, I_g, tt0, CU_KA1, CU_KA2, 0.0,
-                     np.array([0.0, 3.0, 6.0, 12.0, 24.0]))
+    # Ni (111)/(222)/(333) with Mo K-alpha, noise-free: three orders that do not lie
+    # exactly on a line in m^2
+    data = _dataset(D_NI_111, MO_KA1, MO_KA2, 0.52, [1, 2, 3], (1 / 30, 0.025), (0.0010, 0.009),
+                    (2.0, 2.5, 0.01), (1.0, 1.5, 0.005), None)
+    L = 1.5 * np.arange(17)
+    out = subproblem_1(*data, MO_KA1, MO_KA2, 0.52, [1, 2, 3], D_NI_111, L)
     _check(out, (
         [
-          1.0, 0.8040076275, 0.5979655863,
-          0.2840584099, 0.03511688515],
+          1.0, 0.9207576068, 0.8224157163, 0.7277806557, 0.6380964977,
+          0.5549385369, 0.4780300053, 0.4081719663, 0.3455131851, 0.2898742205,
+          0.2409944103, 0.1985933337, 0.1622134264, 0.1313514867, 0.1053795123,
+          0.08380339535, 0.06607380043],
         [
-          0.0, 0.01943397442, 0.01600093662,
-          0.007731838532, 0.002581003625]))
+          0.0, 0.001406730097, 0.001282015248, 0.00115978017, 0.001076145921,
+          0.001024257904, 0.0009835960832, 0.0009532314719, 0.0009299799397, 0.0009109652894,
+          0.0008949929999, 0.0008818948708, 0.000870403358, 0.000861203898, 0.0008527083309,
+          0.0008450851948, 0.0008388321084],
+        [
+          0.0, 0.02489019389, 0.02252678023, 0.01902963071, 0.01644292585,
+          0.01539425361, 0.01223752592, 0.01093703757, 0.009819423551, 0.009081983621,
+          0.008626293748, 0.009251431928, 0.008768745494, 0.007319789468, 0.006325409845,
+          0.005625181332, 0.005033051899],
+        [
+          0.0, 0.001560227815, 0.0004345134137, 0.0002036792657, 0.0001245663235,
+          8.725958212e-05, 6.369268697e-05, 4.660259846e-05, 3.944734445e-05, 3.64705341e-05,
+          3.677304725e-05, 4.897833625e-05, 4.547109337e-05, 3.869752459e-05, 3.972085142e-05,
+          4.759632094e-05, 7.356198915e-05]))
 
 
 def test_case_5():
-    # ZnO (002): specimen recorded with a variable step (0.01 deg over the peak,
-    # 0.05 deg in the tails), instrumental scan on a different grid.
-    tt1 = _bragg_2theta(CU_KA1, D_ZNO_002)
-    c = round(tt1, 2)
-    tt_h = np.round(np.concatenate([c - 4.0 + 0.05 * np.arange(64),
-                                    c - 0.8 + 0.01 * np.arange(161),
-                                    c + 0.85 + 0.05 * np.arange(74)]), 4)
-    sig_i, gam_i = 0.0016, 0.0013
-    sig_h = math.sqrt((0.020 ** 2 + 0.012 ** 2) / (2.0 * math.pi) + sig_i ** 2)
-    gam_h = (1 / 24 + 0.0015) / math.pi + gam_i
-    I_h = _scan(tt_h, tt1, CU_KA1, CU_KA2, D_ZNO_002, sig_h, gam_h, 400.0, 120.0, -1.0, ka2=0.5)
-    tt_g = _grid(c, 1.5, 2.0, 0.01)
-    I_g = _scan(tt_g, tt1, CU_KA1, CU_KA2, D_ZNO_002, sig_i, gam_i, 100.0, 20.0, 0.0, ka2=0.0)
-    out = subproblem_1(tt_h, I_h, tt_g, I_g, round(tt1, 3), CU_KA1, CU_KA2, 0.5,
-                     np.array([0.0, 2.0, 6.0, 12.0, 24.0]))
+    # Small Cu crystallites with counting noise: at large L the coefficients reach the
+    # noise floor and A_S and eps_rms are set to 0 by the rules
+    data = _dataset(D_CU_111, CU_KA1, CU_KA2, 0.5, [1, 2], (1 / 16, 0.030), (0.0015, 0.012),
+                    (4.0, 4.5, 0.02), (1.5, 2.0, 0.01), 43)
+    L = 1.0 * np.arange(31)
+    out = subproblem_1(*data, CU_KA1, CU_KA2, 0.5, [1, 2], D_CU_111, L)
     _check(out, (
         [
-          1.0, 0.8637122643, 0.5793569551,
-          0.286937506, 0.0486742471],
+          1.0, 0.9376535699, 0.8177507151, 0.7105520242, 0.6102984176,
+          0.5233119317, 0.4493452984, 0.3806810546, 0.3239707149, 0.2725421066,
+          0.227305011, 0.1940495335, 0.163492061, 0.131505962, 0.1104701973,
+          0.09008648542, 0.06831770463, 0.05550584178, 0.04050424156, 0.03057112828,
+          0.02198039796, 0.01189234456, 0.007546729754, 0.005877775144, 0.004075964616,
+          0.0004115868164, 0.003106453266, 0.002885158261, 0.0, 0.001124320016,
+          0.0],
         [
-          0.0, 0.01547676454, 0.01119923231,
-          0.005769382271, 0.002436655525]))
+          0.0, 0.002322223421, 0.002320213025, 0.001936830275, 0.001511736311,
+          0.001476935648, 0.001438912552, 0.00132723842, 0.001348073113, 0.001318809355,
+          0.001281216908, 0.001379535488, 0.001377844614, 0.001236347508, 0.001293245548,
+          0.001338071307, 0.00116928604, 0.001122458518, 0.0009696504845, 0.0007389987835,
+          0.000821912266, 0.000906060658, 0.0008566742524, 0.0006311307643, 0.0004188560296,
+          0.0, 0.0, 0.0, 0.0, 0.0005175804578,
+          0.0],
+        [
+          0.0, 0.01791419774, 0.02288349766, 0.01942397824, 0.01988375558,
+          0.01475469348, 0.0135888196, 0.01046034092, 0.009763633019, 0.008315708517,
+          0.006956575478, 0.006501267781, 0.00576638276, 0.005019044336, 0.004918552865,
+          0.004873240421, 0.004715958111, 0.004826006084, 0.004787745448, 0.004483337065,
+          0.005011267137, 0.005690876151, 0.005743826626, 0.005072953952, 0.0046659901,
+          0.002833755663, 0.003851694237, 0.003664030863, 0.0, 0.00588736654,
+          0.0],
+        [
+          0.0, 0.002598838357, 0.001137722437, 0.0005865721087, 0.0004623673218,
+          0.0003123161936, 0.0002265429101, 0.0001562046759, 0.0001356051845, 0.0001129588925,
+          8.765589399e-05, 8.402641217e-05, 8.327186845e-05, 8.23930805e-05, 9.448560407e-05,
+          0.0001169483305, 0.0001464603412, 0.0001900653971, 0.0002678751706, 0.0003766748167,
+          0.0005210795557, 0.0009396002236, 0.00141326311, 0.001704538113, 0.00268076959,
+          0.0, 0.0, 0.0, 0.0, 0.005166337886,
+          0.0]))
 
 
 def test_case_6():
-    # ZnO (004) with a steeply sloping background and counting noise
-    tt_h, I_h, tt_g, I_g, tt0 = _reflection(2, D_ZNO_002, CU_KA1, CU_KA2,
-                                            (1 / 24, 0.020), (0.0015, 0.012),
-                                            bg=(300.0, -15.0), seed=5)
-    out = subproblem_1(tt_h, I_h, tt_g, I_g, tt0, CU_KA1, CU_KA2, 0.5,
-                     np.array([0.0, 1.5, 4.5, 9.0, 18.0, 27.0]))
+    # ZnO (002)/(004) with Cu K-alpha and counting noise, 1.25 nm L step: at the smallest
+    # L the fitted mean-square strain is not positive
+    data = _dataset(D_ZNO_002, CU_KA1, CU_KA2, 0.5, [1, 2], (1 / 24, 0.020), (0.0015, 0.012),
+                    (4.0, 4.5, 0.02), (1.5, 2.0, 0.01), 33)
+    L = 1.25 * np.arange(21)
+    out = subproblem_1(*data, CU_KA1, CU_KA2, 0.5, [1, 2], D_ZNO_002, L)
     _check(out, (
         [
-          1.0, 0.9057027038, 0.6475082985,
-          0.3506741532, 0.07538105013, 0.009726273651],
+          1.0, 0.8979819829, 0.7817316048, 0.6869223946, 0.6117354069,
+          0.5407787279, 0.4796435373, 0.4188840396, 0.3666176932, 0.3175939547,
+          0.2770602317, 0.2371834515, 0.2029874548, 0.174159662, 0.1527072767,
+          0.1329091304, 0.1084336938, 0.08886920808, 0.07471745863, 0.06469064455,
+          0.05032827478],
         [
-          0.0, 0.02224420113, 0.01824906312,
-          0.008545644479, 0.004463653175, 0.007204595384]))
+          0.0, 0.0, 0.0, 0.0, 0.00106490532,
+          0.001244487002, 0.001339242137, 0.001349650544, 0.001365231287, 0.001369411372,
+          0.001372577957, 0.001368009209, 0.001337731855, 0.001349499719, 0.001371156429,
+          0.001395009101, 0.00132851894, 0.001226579149, 0.00116041764, 0.00127873163,
+          0.00121019971],
+        [
+          0.0, 0.02145084243, 0.0215906771, 0.02362962431, 0.01848748737,
+          0.01627710044, 0.01429849674, 0.01285825218, 0.01139139694, 0.00996062939,
+          0.008866671461, 0.007682985602, 0.00670097437, 0.006329915575, 0.006090543511,
+          0.005725444898, 0.005804315947, 0.005471216449, 0.005888317112, 0.007194368162,
+          0.007509893784],
+        [
+          0.0, 0.0, 0.0, 0.0, 0.000687883033,
+          0.0003540755734, 0.0002336244573, 0.0001691966381, 0.0001367558412, 0.0001042804724,
+          9.184871188e-05, 7.663804082e-05, 7.471386739e-05, 7.092327549e-05, 7.480336075e-05,
+          8.251668417e-05, 0.0001018700785, 0.0001273185488, 0.0001561811158, 0.0002130704356,
+          0.0002753002236]))
+```
+
+---
+
+## Subproblem 1 — Solution
+
+```python
+import numpy as np
+
+
+def _corrected_coefficients(two_theta_meas_deg, intensity_meas, two_theta_inst_deg,
+                            intensity_inst, two_theta0_deg, wavelength_ka1_nm,
+                            wavelength_ka2_nm, ka2_ratio, L_values):
+    # Instrument- and doublet-corrected cosine coefficients A(L) of one order and
+    # their counting-statistics uncertainties sigma_A(L) (first order in the counts).
+    L = np.atleast_1d(np.asarray(L_values, dtype=float))
+    lam1 = float(wavelength_ka1_nm)
+    lam2 = float(wavelength_ka2_nm)
+    R = float(ka2_ratio)
+    sin_theta0 = np.sin(np.deg2rad(float(two_theta0_deg)) / 2.0)
+    omega = 2.0 * np.pi * L
+
+    def transform_weights(s):
+        # Complex weights W with T(L) = W @ y, the exact integral of
+        # exp(-i omega s) times the piecewise-linear interpolant of y(s).
+        # On a segment of width h starting at s_a the integral is
+        # h exp(-i omega s_a) [y_a (g0 - g1) + y_b g1], theta = omega h,
+        # g0 = int_0^1 exp(-i theta u) du, g1 = int_0^1 u exp(-i theta u) du.
+        h = np.diff(s)
+        theta = np.outer(omega, h)
+        g0 = np.empty(theta.shape, dtype=complex)
+        g1 = np.empty(theta.shape, dtype=complex)
+        small = np.abs(theta) < 0.05
+        t = theta[~small]
+        e = np.exp(-1j * t)
+        g0[~small] = (1.0 - e) / (1j * t)
+        g1[~small] = (e * (1.0 + 1j * t) - 1.0) / t ** 2
+        # Taylor series where the closed forms lose precision (and at theta = 0)
+        z = -1j * theta[small]
+        s0 = np.ones_like(z)
+        s1 = np.full_like(z, 0.5)
+        fact = 1.0
+        for k in range(1, 10):
+            fact *= k
+            zk = z ** k
+            s0 += zk / (fact * (k + 1))
+            s1 += zk / (fact * (k + 2))
+        g0[small] = s0
+        g1[small] = s1
+        seg = np.exp(-1j * np.outer(omega, s[:-1])) * h
+        W = np.zeros((omega.size, s.size), dtype=complex)
+        W[:, :-1] += seg * (g0 - g1)
+        W[:, 1:] += seg * g1
+        return W
+
+    def normalised_transform(two_theta_deg, counts):
+        # Returns the normalised transform and its derivatives with respect
+        # to every recorded count (the calculation is linear in the counts
+        # up to the final normalisation).
+        tt = np.asarray(two_theta_deg, dtype=float)
+        n = np.asarray(counts, dtype=float)
+        u = (tt - tt[0]) / (tt[-1] - tt[0])
+        # Straight-line background through the first and last points (in 2theta)
+        I_net = n - ((1.0 - u) * n[0] + u * n[-1])
+        theta = np.deg2rad(tt) / 2.0
+        s = 2.0 * (np.sin(theta) - sin_theta0) / lam1
+        # Intensity per unit s: I_s = I_2theta |d(2theta)/ds| = I_2theta lam1 / cos(theta)
+        c = lam1 / np.cos(theta)
+        W = transform_weights(s) * c               # T(L) = W @ I_net
+        h = np.diff(s)
+        w0 = np.zeros(s.size)
+        w0[:-1] += 0.5 * h
+        w0[1:] += 0.5 * h
+        w0 = w0 * c                                # T(0) = w0 @ I_net (exact)
+        # Linear functionals of the raw counts: T = a @ n and T0 = b @ n,
+        # with the end-point counts entering through the background line
+        a = W.copy()
+        a[:, 0] -= W @ (1.0 - u)
+        a[:, -1] -= W @ u
+        b = w0.copy()
+        b[0] -= w0 @ (1.0 - u)
+        b[-1] -= w0 @ u
+        T = W @ I_net
+        T0 = w0 @ I_net
+        F = T / T0
+        dF = (a - np.outer(F, b)) / T0            # dF/dn_j
+        return F, dF, n
+
+    H, dH, n_h = normalised_transform(two_theta_meas_deg, intensity_meas)
+    G, dG, n_g = normalised_transform(two_theta_inst_deg, intensity_inst)
+
+    # K-alpha2 replica: displaced in s to the K-alpha2 Bragg position,
+    # Delta = 2 sin(theta0) (lam2/lam1 - 1) / lam1, weight R; its normalised
+    # transform (1 + R exp(-2 pi i L Delta)) / (1 + R) multiplies the specimen
+    # transform, since only the specimen scan contains the doublet.
+    delta = 2.0 * sin_theta0 * (lam2 / lam1 - 1.0) / lam1
+    D = (1.0 + R * np.exp(-1j * omega * delta)) / (1.0 + R)
+
+    # Stokes deconvolution with the complete complex transforms
+    Fphys = H / (G * D)
+    A = np.real(Fphys)
+
+    # First-order propagation of the Poisson variances (var n_j = n_j) of
+    # the two independent scans; A = Re F, so only the real parts of the
+    # complex derivatives enter.
+    dA_h = np.real(dH / (G * D)[:, None])
+    dA_g = np.real(-(Fphys / G)[:, None] * dG)
+    sigma_A = np.sqrt(dA_h ** 2 @ n_h + dA_g ** 2 @ n_g)
+    sigma_A[L == 0.0] = 0.0                      # A(0) = 1 identically
+    return A, sigma_A
+
+def subproblem_1(two_theta_meas_deg, intensity_meas, two_theta_inst_deg,
+                 intensity_inst, two_theta0_deg, wavelength_ka1_nm,
+                 wavelength_ka2_nm, ka2_ratio, m_values, d1_nm, L_values):
+    """
+    Size coefficients and rms strains from several orders of one reflection,
+    with their counting-statistics uncertainties.
+
+    Inputs:
+        two_theta_meas_deg: sequence of n 1-D arrays; element j holds the
+            2theta positions in degrees (increasing) of the specimen scan of
+            order m_values[j] (K-alpha1 + K-alpha2 radiation).
+        intensity_meas: sequence of n 1-D arrays of specimen counts (per unit
+            2theta, including background and noise), matching
+            two_theta_meas_deg.
+        two_theta_inst_deg: sequence of n 1-D arrays of 2theta positions in
+            degrees (increasing) of the K-alpha1-only instrumental scans.
+        intensity_inst: sequence of n 1-D arrays of instrumental counts,
+            matching two_theta_inst_deg.
+        two_theta0_deg: sequence of n floats; element j is the reference angle
+            2theta_0 in degrees (K-alpha1 peak position) shared by the two
+            scans of order m_values[j].
+        wavelength_ka1_nm: float, K-alpha1 wavelength in nm.
+        wavelength_ka2_nm: float, K-alpha2 wavelength in nm.
+        ka2_ratio: float, intensity ratio R = I(K-alpha2)/I(K-alpha1),
+            0 <= R < 1.
+        m_values: sequence of n distinct positive integer orders (n >= 2).
+        d1_nm: float, interplanar spacing of the first-order reflection in nm.
+        L_values: 1-D array of column lengths in nm, increasing, with
+            L_values[0] = 0; at every L the transforms of the instrumental
+            profiles are non-zero.
+
+    Output:
+        Tuple (A_size, eps_rms, sigma_A_size, sigma_eps_rms) of 1-D numpy
+        arrays, one value per entry of L_values:
+            A_size: size Fourier coefficients A_S(L).
+            eps_rms: root-mean-square strains (dimensionless).
+            sigma_A_size: standard uncertainty of A_S from counting statistics.
+            sigma_eps_rms: standard uncertainty of eps_rms from counting
+                statistics.
+    """
+    L = np.asarray(L_values, dtype=float)
+    m_squared = np.asarray(m_values, dtype=float) ** 2
+
+    # Step 1: corrected Fourier coefficients of every order and their uncertainties
+    A_orders, sigma_orders = [], []
+    for j in range(len(m_values)):
+        A_j, s_j = _corrected_coefficients(two_theta_meas_deg[j], intensity_meas[j],
+                                           two_theta_inst_deg[j], intensity_inst[j],
+                                           two_theta0_deg[j], wavelength_ka1_nm,
+                                           wavelength_ka2_nm, ka2_ratio, L)
+        A_orders.append(A_j)
+        sigma_orders.append(s_j)
+    A_orders = np.array(A_orders)
+    sigma_orders = np.array(sigma_orders)
+
+    # Step 2: weighted Warren-Averbach separation, ln A = ln A_S - 2 pi^2 m^2 L^2 <eps^2> / d1^2,
+    # weights A^2 (inverse variance of ln A for equal absolute uncertainty of A)
+    A_size = np.zeros_like(L)
+    eps_rms = np.zeros_like(L)
+    sigma_A_size = np.zeros_like(L)
+    sigma_eps_rms = np.zeros_like(L)
+    for i, L_val in enumerate(L):
+        if L_val == 0.0:
+            A_size[i] = 1.0
+            continue
+        coeffs = A_orders[:, i]
+        usable = coeffs > 0.0
+        if np.count_nonzero(usable) < 2:
+            continue                                   # A_S = 0, eps_rms = 0
+        x = m_squared[usable]
+        y = np.log(coeffs[usable])
+        w = coeffs[usable] ** 2
+        W = np.sum(w)
+        x_bar = np.sum(w * x) / W
+        y_bar = np.sum(w * y) / W
+        b = np.sum(w * (x - x_bar) * (y - y_bar)) / np.sum(w * (x - x_bar) ** 2)
+        a = y_bar - b * x_bar
+        A_size[i] = np.exp(a)
+        k = d1_nm ** 2 / (2.0 * np.pi ** 2 * L_val ** 2)
+        eps2 = -b * k
+        eps_rms[i] = np.sqrt(eps2) if eps2 > 0.0 else 0.0
+
+        # Uncertainties. The coefficient of order j at this L depends only on the
+        # counts of order j, and different orders are independent, so
+        # var = sum_j (d out / d A_j)^2 sigma_j^2. The fit weights w = A^2 are
+        # themselves functions of the coefficients: with X = [1, m^2] and
+        # M = X^T diag(w) X, d(a, b)/dy_j = M^-1 x_j w_j and d(a, b)/dw_j = M^-1 x_j r_j
+        # (r_j = residual of point j), hence d(a, b)/dA_j = M^-1 x_j A_j (1 + 2 r_j).
+        # The residual term vanishes when only two orders are usable.
+        X = np.column_stack([np.ones_like(x), x])
+        M = X.T @ (w[:, None] * X)
+        r = y - (a + b * x)
+        dtheta = np.linalg.solve(M, X.T * (coeffs[usable] * (1.0 + 2.0 * r)))   # (2, n_usable)
+        s2 = sigma_orders[usable, i] ** 2
+        sigma_A_size[i] = A_size[i] * np.sqrt(np.sum(dtheta[0] ** 2 * s2))
+        if eps2 > 0.0:
+            sigma_eps_rms[i] = k / (2.0 * eps_rms[i]) * np.sqrt(np.sum(dtheta[1] ** 2 * s2))
+
+    return A_size, eps_rms, sigma_A_size, sigma_eps_rms
 ```
 
 ---
@@ -865,45 +1172,12 @@ import numpy as np
 from scipy.integrate import quad
 from scipy.optimize import brentq
 
-def subproblem_1(two_theta_meas_deg, intensity_meas, two_theta_inst_deg,
-                 intensity_inst, two_theta0_deg, wavelength_ka1_nm,
-                 wavelength_ka2_nm, ka2_ratio, L_values):
-    """
-    Instrument- and doublet-corrected Fourier cosine coefficients of one line.
 
-    Inputs:
-        two_theta_meas_deg: 1-D array of 2theta positions in degrees
-            (increasing) of the specimen step scan, recorded with
-            K-alpha1 + K-alpha2 radiation.
-        intensity_meas: 1-D array of specimen counts (intensity per unit
-            2theta, including a linear background), same length as
-            two_theta_meas_deg.
-        two_theta_inst_deg: 1-D array of 2theta positions in degrees
-            (increasing) of the instrumental-profile scan, which contains
-            K-alpha1 only; its range and step may differ from those of the
-            specimen scan.
-        intensity_inst: 1-D array of instrumental counts, same length as
-            two_theta_inst_deg.
-        two_theta0_deg: float, reference angle 2theta_0 in degrees (K-alpha1
-            peak position) that defines s = 0 for both scans.
-        wavelength_ka1_nm: float, K-alpha1 wavelength in nm.
-        wavelength_ka2_nm: float, K-alpha2 wavelength in nm.
-        ka2_ratio: float, intensity ratio R = I(K-alpha2)/I(K-alpha1),
-            0 <= R < 1.
-        L_values: 1-D array of column lengths L in nm (L >= 0) at which the
-            coefficients are required; L = 0 need not be included. At every
-            requested L the transform of the instrumental profile is non-zero.
-
-    Output:
-        Tuple (A, sigma_A) of 1-D numpy arrays, one value per entry of
-        L_values and in the same order:
-            A: normalised Fourier cosine coefficients of the K-alpha1 physical
-                line profile (A = 1 at L = 0).
-            sigma_A: standard uncertainty of A from counting statistics
-                (Poisson variance of every recorded count equal to the count,
-                all counts independent), propagated to first order through
-                the whole calculation (sigma_A = 0 at L = 0).
-    """
+def _corrected_coefficients(two_theta_meas_deg, intensity_meas, two_theta_inst_deg,
+                            intensity_inst, two_theta0_deg, wavelength_ka1_nm,
+                            wavelength_ka2_nm, ka2_ratio, L_values):
+    # Instrument- and doublet-corrected cosine coefficients A(L) of one order and
+    # their counting-statistics uncertainties sigma_A(L) (first order in the counts).
     L = np.atleast_1d(np.asarray(L_values, dtype=float))
     lam1 = float(wavelength_ka1_nm)
     lam2 = float(wavelength_ka2_nm)
@@ -999,6 +1273,106 @@ def subproblem_1(two_theta_meas_deg, intensity_meas, two_theta_inst_deg,
     sigma_A = np.sqrt(dA_h ** 2 @ n_h + dA_g ** 2 @ n_g)
     sigma_A[L == 0.0] = 0.0                      # A(0) = 1 identically
     return A, sigma_A
+
+def subproblem_1(two_theta_meas_deg, intensity_meas, two_theta_inst_deg,
+                 intensity_inst, two_theta0_deg, wavelength_ka1_nm,
+                 wavelength_ka2_nm, ka2_ratio, m_values, d1_nm, L_values):
+    """
+    Size coefficients and rms strains from several orders of one reflection,
+    with their counting-statistics uncertainties.
+
+    Inputs:
+        two_theta_meas_deg: sequence of n 1-D arrays; element j holds the
+            2theta positions in degrees (increasing) of the specimen scan of
+            order m_values[j] (K-alpha1 + K-alpha2 radiation).
+        intensity_meas: sequence of n 1-D arrays of specimen counts (per unit
+            2theta, including background and noise), matching
+            two_theta_meas_deg.
+        two_theta_inst_deg: sequence of n 1-D arrays of 2theta positions in
+            degrees (increasing) of the K-alpha1-only instrumental scans.
+        intensity_inst: sequence of n 1-D arrays of instrumental counts,
+            matching two_theta_inst_deg.
+        two_theta0_deg: sequence of n floats; element j is the reference angle
+            2theta_0 in degrees (K-alpha1 peak position) shared by the two
+            scans of order m_values[j].
+        wavelength_ka1_nm: float, K-alpha1 wavelength in nm.
+        wavelength_ka2_nm: float, K-alpha2 wavelength in nm.
+        ka2_ratio: float, intensity ratio R = I(K-alpha2)/I(K-alpha1),
+            0 <= R < 1.
+        m_values: sequence of n distinct positive integer orders (n >= 2).
+        d1_nm: float, interplanar spacing of the first-order reflection in nm.
+        L_values: 1-D array of column lengths in nm, increasing, with
+            L_values[0] = 0; at every L the transforms of the instrumental
+            profiles are non-zero.
+
+    Output:
+        Tuple (A_size, eps_rms, sigma_A_size, sigma_eps_rms) of 1-D numpy
+        arrays, one value per entry of L_values:
+            A_size: size Fourier coefficients A_S(L).
+            eps_rms: root-mean-square strains (dimensionless).
+            sigma_A_size: standard uncertainty of A_S from counting statistics.
+            sigma_eps_rms: standard uncertainty of eps_rms from counting
+                statistics.
+    """
+    L = np.asarray(L_values, dtype=float)
+    m_squared = np.asarray(m_values, dtype=float) ** 2
+
+    # Step 1: corrected Fourier coefficients of every order and their uncertainties
+    A_orders, sigma_orders = [], []
+    for j in range(len(m_values)):
+        A_j, s_j = _corrected_coefficients(two_theta_meas_deg[j], intensity_meas[j],
+                                           two_theta_inst_deg[j], intensity_inst[j],
+                                           two_theta0_deg[j], wavelength_ka1_nm,
+                                           wavelength_ka2_nm, ka2_ratio, L)
+        A_orders.append(A_j)
+        sigma_orders.append(s_j)
+    A_orders = np.array(A_orders)
+    sigma_orders = np.array(sigma_orders)
+
+    # Step 2: weighted Warren-Averbach separation, ln A = ln A_S - 2 pi^2 m^2 L^2 <eps^2> / d1^2,
+    # weights A^2 (inverse variance of ln A for equal absolute uncertainty of A)
+    A_size = np.zeros_like(L)
+    eps_rms = np.zeros_like(L)
+    sigma_A_size = np.zeros_like(L)
+    sigma_eps_rms = np.zeros_like(L)
+    for i, L_val in enumerate(L):
+        if L_val == 0.0:
+            A_size[i] = 1.0
+            continue
+        coeffs = A_orders[:, i]
+        usable = coeffs > 0.0
+        if np.count_nonzero(usable) < 2:
+            continue                                   # A_S = 0, eps_rms = 0
+        x = m_squared[usable]
+        y = np.log(coeffs[usable])
+        w = coeffs[usable] ** 2
+        W = np.sum(w)
+        x_bar = np.sum(w * x) / W
+        y_bar = np.sum(w * y) / W
+        b = np.sum(w * (x - x_bar) * (y - y_bar)) / np.sum(w * (x - x_bar) ** 2)
+        a = y_bar - b * x_bar
+        A_size[i] = np.exp(a)
+        k = d1_nm ** 2 / (2.0 * np.pi ** 2 * L_val ** 2)
+        eps2 = -b * k
+        eps_rms[i] = np.sqrt(eps2) if eps2 > 0.0 else 0.0
+
+        # Uncertainties. The coefficient of order j at this L depends only on the
+        # counts of order j, and different orders are independent, so
+        # var = sum_j (d out / d A_j)^2 sigma_j^2. The fit weights w = A^2 are
+        # themselves functions of the coefficients: with X = [1, m^2] and
+        # M = X^T diag(w) X, d(a, b)/dy_j = M^-1 x_j w_j and d(a, b)/dw_j = M^-1 x_j r_j
+        # (r_j = residual of point j), hence d(a, b)/dA_j = M^-1 x_j A_j (1 + 2 r_j).
+        # The residual term vanishes when only two orders are usable.
+        X = np.column_stack([np.ones_like(x), x])
+        M = X.T @ (w[:, None] * X)
+        r = y - (a + b * x)
+        dtheta = np.linalg.solve(M, X.T * (coeffs[usable] * (1.0 + 2.0 * r)))   # (2, n_usable)
+        s2 = sigma_orders[usable, i] ** 2
+        sigma_A_size[i] = A_size[i] * np.sqrt(np.sum(dtheta[0] ** 2 * s2))
+        if eps2 > 0.0:
+            sigma_eps_rms[i] = k / (2.0 * eps_rms[i]) * np.sqrt(np.sum(dtheta[1] ** 2 * s2))
+
+    return A_size, eps_rms, sigma_A_size, sigma_eps_rms
 
 
 def _sphere_profile(y):
@@ -1213,42 +1587,14 @@ def main_problem(two_theta_meas_deg, intensity_meas, two_theta_inst_deg,
                 log-normal sphere powder, one per entry of L_values.
     """
     L = np.asarray(L_values, dtype=float)
-    m_squared = np.asarray(m_values, dtype=float) ** 2
 
-    # Step 1: corrected Fourier coefficients of every order on the common L grid
-    A_orders = np.array([
-        subproblem_1(two_theta_meas_deg[j], intensity_meas[j],
-                     two_theta_inst_deg[j], intensity_inst[j],
-                     two_theta0_deg[j], wavelength_ka1_nm, wavelength_ka2_nm,
-                     ka2_ratio, L)[0]
-        for j in range(len(m_values))
-    ])
+    # Steps 1-2: corrected Fourier coefficients of every order and the weighted
+    # Warren-Averbach separation into A_S(L) and eps_rms(L)
+    A_size, eps_rms, _, _ = subproblem_1(two_theta_meas_deg, intensity_meas, two_theta_inst_deg,
+                                         intensity_inst, two_theta0_deg, wavelength_ka1_nm,
+                                         wavelength_ka2_nm, ka2_ratio, m_values, d1_nm, L)
 
-    # Step 2: weighted Warren-Averbach separation, ln A = ln A_S - 2 pi^2 m^2 L^2 <eps^2> / d1^2,
-    # weights A^2 (inverse variance of ln A for equal absolute uncertainty of A)
-    A_size = np.zeros_like(L)
-    eps_rms = np.zeros_like(L)
-    for i, L_val in enumerate(L):
-        if L_val == 0.0:
-            A_size[i] = 1.0
-            continue
-        coeffs = A_orders[:, i]
-        usable = coeffs > 0.0
-        if np.count_nonzero(usable) < 2:
-            continue                                   # A_S = 0, eps_rms = 0
-        x = m_squared[usable]
-        y = np.log(coeffs[usable])
-        w = coeffs[usable] ** 2
-        W = np.sum(w)
-        x_bar = np.sum(w * x) / W
-        y_bar = np.sum(w * y) / W
-        b = np.sum(w * (x - x_bar) * (y - y_bar)) / np.sum(w * (x - x_bar) ** 2)
-        a = y_bar - b * x_bar
-        A_size[i] = np.exp(a)
-        eps2 = -b * d1_nm ** 2 / (2.0 * np.pi ** 2 * L_val ** 2)
-        eps_rms[i] = np.sqrt(eps2) if eps2 > 0.0 else 0.0
-
-    # Step 3: mean column lengths, log-normal spheres and their size coefficient
+    # Steps 3-4: mean column lengths, log-normal spheres and their size coefficient
     L_area, L_vol, D_median, sigma, A_model = subproblem_2(L, A_size, fit_index_lo, fit_index_hi)[:5]
 
     return L_area, L_vol, D_median, sigma, eps_rms, A_model
